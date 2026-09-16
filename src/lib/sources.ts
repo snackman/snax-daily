@@ -444,6 +444,170 @@ export const SOURCES: Source[] = [
   },
 
   // ---------------------------------------------------------------------------
+  // Robotics
+  // ---------------------------------------------------------------------------
+  {
+    name: "The Robot Report",
+    url: "https://www.therobotreport.com/feed/",
+    homepage: "https://www.therobotreport.com/",
+    topic: "Tech",
+    type: "article",
+  },
+  {
+    name: "IEEE Spectrum Robotics",
+    url: "https://spectrum.ieee.org/feeds/topic/robotics.rss",
+    homepage: "https://spectrum.ieee.org/topic/robotics/",
+    topic: "Tech",
+    type: "article",
+  },
+
+  // ---------------------------------------------------------------------------
+  // Neuroscience / neural interfaces
+  // ---------------------------------------------------------------------------
+  {
+    name: "The Transmitter",
+    url: "https://www.thetransmitter.org/feed/",
+    homepage: "https://www.thetransmitter.org/",
+    topic: "Science",
+    type: "article",
+  },
+  {
+    name: "Neuroscience News",
+    url: "https://neurosciencenews.com/feed/",
+    homepage: "https://neurosciencenews.com/",
+    topic: "Science",
+    type: "article",
+  },
+
+  // ---------------------------------------------------------------------------
+  // Semiconductors / memory (memristors, ReRAM, neuromorphic) & storage tech
+  // ---------------------------------------------------------------------------
+  {
+    name: "Semiconductor Engineering",
+    url: "https://semiengineering.com/feed/",
+    homepage: "https://semiengineering.com/",
+    topic: "Tech",
+    type: "article",
+  },
+  {
+    name: "The Next Platform",
+    url: "https://www.nextplatform.com/feed/",
+    homepage: "https://www.nextplatform.com/",
+    topic: "Tech",
+    type: "article",
+  },
+  {
+    name: "Energy Storage News",
+    url: "https://www.energy-storage.news/feed/",
+    homepage: "https://www.energy-storage.news/",
+    topic: "Energy",
+    type: "article",
+  },
+
+  // ---------------------------------------------------------------------------
+  // Deep writers / analysis
+  // ---------------------------------------------------------------------------
+  {
+    name: "Astral Codex Ten",
+    url: "https://www.astralcodexten.com/feed",
+    homepage: "https://www.astralcodexten.com/",
+    topic: "Tech",
+    type: "article",
+  },
+  {
+    name: "Marginal Revolution",
+    url: "https://marginalrevolution.com/feed",
+    homepage: "https://marginalrevolution.com/",
+    topic: "Tech",
+    type: "article",
+  },
+  {
+    name: "Don't Worry About the Vase (Zvi)",
+    url: "https://thezvi.substack.com/feed",
+    homepage: "https://thezvi.substack.com/",
+    topic: "AI",
+    type: "article",
+  },
+  {
+    name: "AI Snake Oil",
+    url: "https://www.aisnakeoil.com/feed",
+    homepage: "https://www.aisnakeoil.com/",
+    topic: "AI",
+    type: "article",
+  },
+  {
+    name: "One Useful Thing (Ethan Mollick)",
+    url: "https://www.oneusefulthing.org/feed",
+    homepage: "https://www.oneusefulthing.org/",
+    topic: "AI",
+    type: "article",
+  },
+
+  // ---------------------------------------------------------------------------
+  // Journalism / aggregators
+  // ---------------------------------------------------------------------------
+  {
+    name: "404 Media",
+    url: "https://www.404media.co/rss/",
+    homepage: "https://www.404media.co/",
+    topic: "Tech",
+    type: "article",
+  },
+  {
+    name: "Rest of World",
+    url: "https://restofworld.org/feed/latest/",
+    homepage: "https://restofworld.org/",
+    topic: "Tech",
+    type: "article",
+  },
+  {
+    name: "Techmeme",
+    url: "https://www.techmeme.com/feed.xml",
+    homepage: "https://www.techmeme.com/",
+    topic: "Tech",
+    type: "article",
+  },
+  {
+    name: "The Pragmatic Engineer",
+    url: "https://newsletter.pragmaticengineer.com/feed",
+    homepage: "https://newsletter.pragmaticengineer.com/",
+    topic: "Tech",
+    type: "article",
+  },
+  {
+    name: "Lobsters",
+    url: "https://lobste.rs/rss",
+    homepage: "https://lobste.rs/",
+    topic: "Tech",
+    type: "article",
+  },
+
+  // ---------------------------------------------------------------------------
+  // Biotech + space fill-ins
+  // ---------------------------------------------------------------------------
+  {
+    name: "STAT News",
+    url: "https://www.statnews.com/feed/",
+    homepage: "https://www.statnews.com/",
+    topic: "Biotech",
+    type: "article",
+  },
+  {
+    name: "Century of Bio (Elliot Hershberg)",
+    url: "https://centuryofbio.substack.com/feed",
+    homepage: "https://www.centuryofbio.com/",
+    topic: "Biotech",
+    type: "article",
+  },
+  {
+    name: "The Orbital Index",
+    url: "https://orbitalindex.com/feed.xml",
+    homepage: "https://orbitalindex.com/",
+    topic: "Space",
+    type: "article",
+  },
+
+  // ---------------------------------------------------------------------------
   // Podcasts (lightweight: surface new episodes + their own descriptions)
   // ---------------------------------------------------------------------------
   {

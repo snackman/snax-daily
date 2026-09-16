@@ -14,10 +14,13 @@ const MAX_ITEMS_TO_RANK = 160;
 
 const INTERESTS = `The reader is interested in: cutting-edge technology, scientific
 developments, AI/ML, robotics, neural interfaces / brain-computer interfaces,
+memristors / resistive memory (ReRAM) / neuromorphic computing, next-generation
+energy storage & battery technology (solid-state, grid-scale storage),
 space & commercial spaceflight, quantum computing, fusion energy, energy &
 batteries / grid, blockchain/crypto, Apple, Nintendo, nuclear energy, and biotech.
-They value substance and genuine importance over hype, press releases, or
-incremental product churn.
+They want to be on the cutting edge of these — favor genuine research and
+engineering breakthroughs. They value substance and genuine importance over hype,
+press releases, or incremental product churn.
 
 They do NOT care about car / automotive news (vehicle models, reviews, EVs as
 consumer products). Exclude it — UNLESS the real story is robotics, AI autonomy,
