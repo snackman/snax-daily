@@ -271,7 +271,19 @@ function PickCard({ story, rank, ctx }: { story: DigestStory; rank: number; ctx:
   );
 }
 
+function SpotifyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
+      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.52 17.34c-.24.36-.66.48-1.02.24-2.82-1.74-6.36-2.1-10.56-1.14-.42.12-.78-.18-.9-.54-.12-.42.18-.78.54-.9 4.56-1.02 8.52-.6 11.64 1.32.42.18.48.66.3 1.02zm1.44-3.3c-.3.42-.84.6-1.26.3-3.24-1.98-8.16-2.58-11.94-1.38-.48.12-1.02-.12-1.14-.6-.12-.48.12-1.02.6-1.14 4.38-1.32 9.78-.66 13.5 1.62.42.18.54.78.24 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.1 9.3c-.6.18-1.2-.18-1.38-.72-.18-.6.18-1.2.72-1.38 4.32-1.32 11.4-1.02 15.9 1.62.54.3.72 1.02.42 1.56-.3.48-1.02.66-1.56.36z" />
+    </svg>
+  );
+}
+
 function PodcastRow({ ep, ctx }: { ep: PodcastEpisode; ctx: RowCtx }) {
+  // Direct episode link when the Spotify API resolved one; else fall back to a
+  // show search so there's always something to click.
+  const spotifyUrl =
+    ep.spotifyUrl ?? `https://open.spotify.com/search/${encodeURIComponent(ep.show)}`;
   return (
     <li
       ref={(el) => ctx.register(ep.link, el)}
@@ -287,20 +299,29 @@ function PodcastRow({ ep, ctx }: { ep: PodcastEpisode; ctx: RowCtx }) {
         onClick={() => ctx.onOpen(ep.link)}
         className="min-w-0 flex-1"
       >
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <span className="text-sm font-medium text-black/60 dark:text-white/60">{ep.show}</span>
-            <h3 className={`font-medium leading-snug group-hover:underline ${ctx.isRead ? "line-through" : ""}`}>
-              {ep.episodeTitle}
-            </h3>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <StarToggle isStar={ctx.isStar} onToggle={() => ctx.onToggleStar(ep.link)} />
-            <TopicBadge topic={ep.topic} />
-          </div>
-        </div>
+        <span className="text-sm font-medium text-black/60 dark:text-white/60">{ep.show}</span>
+        <h3 className={`font-medium leading-snug group-hover:underline ${ctx.isRead ? "line-through" : ""}`}>
+          {ep.episodeTitle}
+        </h3>
         {ep.oneLiner && <p className="mt-1 text-sm text-black/60 dark:text-white/50">{ep.oneLiner}</p>}
       </a>
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <TopicBadge topic={ep.topic} />
+        <div className="flex items-center gap-2">
+          <a
+            href={spotifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={`Open ${ep.show} in Spotify`}
+            aria-label={`Open ${ep.show} in Spotify`}
+            className="flex items-center gap-1 rounded-full bg-[#1DB954]/15 px-2 py-0.5 text-xs font-medium text-[#1DB954] hover:bg-[#1DB954]/25"
+          >
+            <SpotifyIcon />
+            Spotify
+          </a>
+          <StarToggle isStar={ctx.isStar} onToggle={() => ctx.onToggleStar(ep.link)} />
+        </div>
+      </div>
     </li>
   );
 }

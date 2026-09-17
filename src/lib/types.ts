@@ -38,6 +38,8 @@ export interface PodcastEpisode {
   link: string;
   topic: Topic;
   publishedAt: string | null;
+  /** Direct Spotify episode URL, when resolved via the Spotify API. */
+  spotifyUrl?: string;
 }
 
 /** The full curated digest for a single day. */

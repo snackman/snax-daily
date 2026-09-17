@@ -931,4 +931,11 @@ export const SOURCES: Source[] = [
     topic: "Science",
     type: "podcast",
   },
+  {
+    name: "The Smart Economy Podcast",
+    url: "https://feeds.fame.so/the-smart-economy-podcast",
+    homepage: "https://www.smarteconomypodcast.com/",
+    topic: "Blockchain",
+    type: "podcast",
+  },
 ];

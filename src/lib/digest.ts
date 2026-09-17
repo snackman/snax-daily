@@ -5,6 +5,7 @@ import { webSearchFill } from "./websearch";
 import { saveDigest } from "./storage";
 import { getState, saveState, seenBefore, type ReaderState } from "./state";
 import { getSettings } from "./settings";
+import { resolveSpotifyLinks } from "./spotify";
 import type { Digest, DigestStory, FeedItem, PodcastEpisode } from "./types";
 
 /** Today's date as YYYY-MM-DD in the given IANA timezone. */
@@ -109,6 +110,12 @@ export async function generateDigest(date = todayInTz()): Promise<Digest> {
     }),
     buildPodcasts(podcastItems, settings.podcastSlots),
   ];
+
+  // Resolve direct Spotify episode links (best-effort; no-op without creds).
+  const spotify = await resolveSpotifyLinks(podcasts);
+  podcasts.forEach((p, i) => {
+    if (spotify[i]) p.spotifyUrl = spotify[i]!;
+  });
 
   const digest: Digest = {
     date,
