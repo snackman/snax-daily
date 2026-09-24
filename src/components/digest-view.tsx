@@ -280,10 +280,11 @@ function SpotifyIcon() {
 }
 
 function PodcastRow({ ep, ctx }: { ep: PodcastEpisode; ctx: RowCtx }) {
-  // Direct episode link when the Spotify API resolved one; else fall back to a
-  // show search so there's always something to click.
+  // Direct episode link when the Spotify API resolved one; else fall back to an
+  // episode-title search so the exact episode is the top result (one tap away).
   const spotifyUrl =
-    ep.spotifyUrl ?? `https://open.spotify.com/search/${encodeURIComponent(ep.show)}`;
+    ep.spotifyUrl ??
+    `https://open.spotify.com/search/${encodeURIComponent(`${ep.episodeTitle} ${ep.show}`)}/episodes`;
   return (
     <li
       ref={(el) => ctx.register(ep.link, el)}
