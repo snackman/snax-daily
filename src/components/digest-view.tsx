@@ -280,6 +280,12 @@ function SpotifyIcon() {
 }
 
 function PodcastRow({ ep, ctx }: { ep: PodcastEpisode; ctx: RowCtx }) {
+  // Preferred: exact episode URL resolved via the Spotify API (needs Premium on
+  // the app owner). No-auth fallback: an episode-title search that lands Spotify
+  // directly on this exact episode as the top result (no Premium required).
+  const spotifyUrl =
+    ep.spotifyUrl ??
+    `https://open.spotify.com/search/${encodeURIComponent(`${ep.episodeTitle} ${ep.show}`)}/episodes`;
   return (
     <li
       ref={(el) => ctx.register(ep.link, el)}
@@ -304,20 +310,17 @@ function PodcastRow({ ep, ctx }: { ep: PodcastEpisode; ctx: RowCtx }) {
       <div className="flex shrink-0 flex-col items-end gap-1.5">
         <TopicBadge topic={ep.topic} />
         <div className="flex items-center gap-2">
-          {/* Only shown once the exact Spotify episode has been resolved. */}
-          {ep.spotifyUrl && (
-            <a
-              href={ep.spotifyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Listen to this episode on Spotify"
-              aria-label="Listen to this episode on Spotify"
-              className="flex items-center gap-1 rounded-full bg-[#1DB954]/15 px-2 py-0.5 text-xs font-medium text-[#1DB954] hover:bg-[#1DB954]/25"
-            >
-              <SpotifyIcon />
-              Spotify
-            </a>
-          )}
+          <a
+            href={spotifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={ep.spotifyUrl ? "Listen to this episode on Spotify" : `Find this episode on Spotify`}
+            aria-label="Open this episode on Spotify"
+            className="flex items-center gap-1 rounded-full bg-[#1DB954]/15 px-2 py-0.5 text-xs font-medium text-[#1DB954] hover:bg-[#1DB954]/25"
+          >
+            <SpotifyIcon />
+            Spotify
+          </a>
           <StarToggle isStar={ctx.isStar} onToggle={() => ctx.onToggleStar(ep.link)} />
         </div>
       </div>
