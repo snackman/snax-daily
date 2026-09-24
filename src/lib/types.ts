@@ -38,7 +38,9 @@ export interface PodcastEpisode {
   link: string;
   topic: Topic;
   publishedAt: string | null;
-  /** Direct Spotify episode URL, when resolved via the Spotify API. */
+  /** Spotify episode id, when resolved via the Spotify API. */
+  spotifyEpisodeId?: string;
+  /** Direct Spotify episode URL (external_urls.spotify), when resolved. */
   spotifyUrl?: string;
 }
 

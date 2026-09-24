@@ -111,10 +111,18 @@ export async function generateDigest(date = todayInTz()): Promise<Digest> {
     buildPodcasts(podcastItems, settings.podcastSlots),
   ];
 
-  // Resolve direct Spotify episode links (best-effort; no-op without creds).
-  const spotify = await resolveSpotifyLinks(podcasts);
+  // Resolve the exact Spotify episode per podcast (by title + publish date) and
+  // save the id/url with the digest so the page never re-resolves. Best-effort:
+  // stays empty (link hidden) without creds/Premium or when no episode matches.
+  const spotify = await resolveSpotifyLinks(
+    podcasts.map((p) => ({ show: p.show, episodeTitle: p.episodeTitle, publishedAt: p.publishedAt })),
+  );
   podcasts.forEach((p, i) => {
-    if (spotify[i]) p.spotifyUrl = spotify[i]!;
+    const m = spotify[i];
+    if (m) {
+      p.spotifyEpisodeId = m.id;
+      p.spotifyUrl = m.url;
+    }
   });
 
   const digest: Digest = {

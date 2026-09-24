@@ -280,11 +280,6 @@ function SpotifyIcon() {
 }
 
 function PodcastRow({ ep, ctx }: { ep: PodcastEpisode; ctx: RowCtx }) {
-  // Direct episode link when the Spotify API resolved one; else fall back to an
-  // episode-title search so the exact episode is the top result (one tap away).
-  const spotifyUrl =
-    ep.spotifyUrl ??
-    `https://open.spotify.com/search/${encodeURIComponent(`${ep.episodeTitle} ${ep.show}`)}/episodes`;
   return (
     <li
       ref={(el) => ctx.register(ep.link, el)}
@@ -309,17 +304,20 @@ function PodcastRow({ ep, ctx }: { ep: PodcastEpisode; ctx: RowCtx }) {
       <div className="flex shrink-0 flex-col items-end gap-1.5">
         <TopicBadge topic={ep.topic} />
         <div className="flex items-center gap-2">
-          <a
-            href={spotifyUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={`Open ${ep.show} in Spotify`}
-            aria-label={`Open ${ep.show} in Spotify`}
-            className="flex items-center gap-1 rounded-full bg-[#1DB954]/15 px-2 py-0.5 text-xs font-medium text-[#1DB954] hover:bg-[#1DB954]/25"
-          >
-            <SpotifyIcon />
-            Spotify
-          </a>
+          {/* Only shown once the exact Spotify episode has been resolved. */}
+          {ep.spotifyUrl && (
+            <a
+              href={ep.spotifyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Listen to this episode on Spotify"
+              aria-label="Listen to this episode on Spotify"
+              className="flex items-center gap-1 rounded-full bg-[#1DB954]/15 px-2 py-0.5 text-xs font-medium text-[#1DB954] hover:bg-[#1DB954]/25"
+            >
+              <SpotifyIcon />
+              Spotify
+            </a>
+          )}
           <StarToggle isStar={ctx.isStar} onToggle={() => ctx.onToggleStar(ep.link)} />
         </div>
       </div>
