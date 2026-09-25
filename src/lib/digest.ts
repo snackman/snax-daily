@@ -19,6 +19,20 @@ export function todayInTz(tz = process.env.DIGEST_TZ ?? "America/New_York"): str
   return parts; // en-CA formats as YYYY-MM-DD
 }
 
+/**
+ * A Spotify episode URL already present in the RSS item link, if any.
+ * Anchor / Spotify-for-Podcasters feeds put a per-episode Spotify page in
+ * `<link>` (e.g. podcasters.spotify.com/.../episodes/…) — we use it directly
+ * and skip the API. Also handles a bare open.spotify.com/episode/{id}.
+ */
+function spotifyFromLink(url: string | undefined): { url: string; id?: string } | null {
+  if (!url) return null;
+  const open = url.match(/open\.spotify\.com\/episode\/([A-Za-z0-9]+)/);
+  if (open) return { url: `https://open.spotify.com/episode/${open[1]}`, id: open[1] };
+  if (/(?:podcasters|creators)\.spotify\.com\/[^\s"']*\/episodes\//i.test(url)) return { url };
+  return null;
+}
+
 /** Build the lightweight podcast section: newest episodes, description as one-liner. */
 function buildPodcasts(podcastItems: FeedItem[], slots: number): PodcastEpisode[] {
   const sorted = [...podcastItems].sort((a, b) => {
@@ -31,6 +45,7 @@ function buildPodcasts(podcastItems: FeedItem[], slots: number): PodcastEpisode[
   const perShow = new Map<string, PodcastEpisode>();
   for (const it of sorted) {
     if (perShow.has(it.sourceName)) continue;
+    const spotify = spotifyFromLink(it.link);
     perShow.set(it.sourceName, {
       show: it.sourceName,
       episodeTitle: it.title,
@@ -38,6 +53,8 @@ function buildPodcasts(podcastItems: FeedItem[], slots: number): PodcastEpisode[
       link: it.link,
       topic: it.topic,
       publishedAt: it.publishedAt,
+      spotifyUrl: spotify?.url,
+      spotifyEpisodeId: spotify?.id,
     });
   }
   return [...perShow.values()].slice(0, slots);
@@ -111,19 +128,21 @@ export async function generateDigest(date = todayInTz()): Promise<Digest> {
     buildPodcasts(podcastItems, settings.podcastSlots),
   ];
 
-  // Resolve the exact Spotify episode per podcast (by title + publish date) and
-  // save the id/url with the digest so the page never re-resolves. Best-effort:
-  // stays empty (link hidden) without creds/Premium or when no episode matches.
-  const spotify = await resolveSpotifyLinks(
-    podcasts.map((p) => ({ show: p.show, episodeTitle: p.episodeTitle, publishedAt: p.publishedAt })),
-  );
-  podcasts.forEach((p, i) => {
-    const m = spotify[i];
-    if (m) {
-      p.spotifyEpisodeId = m.id;
-      p.spotifyUrl = m.url;
-    }
-  });
+  // Only episodes WITHOUT a Spotify link already in their feed need the API.
+  // (Anchor/Spotify-hosted shows already carry one — resolved in buildPodcasts.)
+  const needApi = podcasts.filter((p) => !p.spotifyUrl);
+  if (needApi.length) {
+    const matches = await resolveSpotifyLinks(
+      needApi.map((p) => ({ show: p.show, episodeTitle: p.episodeTitle, publishedAt: p.publishedAt })),
+    );
+    needApi.forEach((p, i) => {
+      const m = matches[i];
+      if (m) {
+        p.spotifyEpisodeId = m.id;
+        p.spotifyUrl = m.url;
+      }
+    });
+  }
 
   const digest: Digest = {
     date,
