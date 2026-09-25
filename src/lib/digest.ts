@@ -5,7 +5,7 @@ import { webSearchFill } from "./websearch";
 import { saveDigest } from "./storage";
 import { getState, saveState, seenBefore, type ReaderState } from "./state";
 import { getSettings } from "./settings";
-import { resolveSpotifyLinks } from "./spotify";
+import { resolveSpotifyLinks, spotifyEpisodeFromPage } from "./spotify";
 import type { Digest, DigestStory, FeedItem, PodcastEpisode } from "./types";
 
 /** Today's date as YYYY-MM-DD in the given IANA timezone. */
@@ -128,8 +128,21 @@ export async function generateDigest(date = todayInTz()): Promise<Digest> {
     buildPodcasts(podcastItems, settings.podcastSlots),
   ];
 
-  // Only episodes WITHOUT a Spotify link already in their feed need the API.
-  // (Anchor/Spotify-hosted shows already carry one — resolved in buildPodcasts.)
+  // Resolution order (no-auth first, per the "use the ingestion source" rule):
+  //   1. feed <link> is itself a Spotify episode page (Anchor) — done in buildPodcasts.
+  //   2. scrape the episode's landing page for a canonical open.spotify.com/episode link.
+  //   3. Spotify API (needs Premium) for whatever's still unresolved.
+  const needPage = podcasts.filter((p) => !p.spotifyUrl);
+  await Promise.all(
+    needPage.map(async (p) => {
+      const m = await spotifyEpisodeFromPage(p.link);
+      if (m) {
+        p.spotifyEpisodeId = m.id;
+        p.spotifyUrl = m.url;
+      }
+    }),
+  );
+
   const needApi = podcasts.filter((p) => !p.spotifyUrl);
   if (needApi.length) {
     const matches = await resolveSpotifyLinks(

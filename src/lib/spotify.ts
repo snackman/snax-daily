@@ -31,7 +31,37 @@ interface SpotifyEpisode {
 }
 
 const API = "https://api.spotify.com/v1";
+const UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36";
 let tokenCache: { token: string; exp: number } | null = null;
+
+/**
+ * No-auth resolution: many episode landing pages (the RSS <link>) embed a
+ * canonical open.spotify.com/episode/{id} "Listen on Spotify" link. Fetch the
+ * page server-side and extract it — but only when it's unambiguous (exactly one
+ * distinct 22-char id), so we never grab a "related episode" link by mistake.
+ */
+export async function spotifyEpisodeFromPage(pageUrl: string | undefined): Promise<EpisodeMatch | null> {
+  if (!pageUrl || !/^https?:\/\//i.test(pageUrl)) return null;
+  try {
+    const res = await fetch(pageUrl, {
+      headers: { "User-Agent": UA, Accept: "text/html,application/xhtml+xml" },
+      signal: AbortSignal.timeout(12000),
+      redirect: "follow",
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const ids = [
+      ...new Set(
+        [...html.matchAll(/open\.spotify\.com\/episode\/([A-Za-z0-9]{22})/g)].map((m) => m[1]),
+      ),
+    ];
+    if (ids.length !== 1) return null; // absent or ambiguous
+    return { id: ids[0], url: `https://open.spotify.com/episode/${ids[0]}` };
+  } catch {
+    return null;
+  }
+}
 
 export function spotifyEnabled(): boolean {
   return !!(process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET);
