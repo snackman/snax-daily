@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Digest, DigestStory, PodcastEpisode } from "@/lib/types";
 
 const TOPIC_STYLES: Record<string, string> = {
@@ -279,6 +279,59 @@ function SpotifyIcon() {
   );
 }
 
+/**
+ * Turns an `https://open.spotify.com/<type>/<id>` (or `/search/<q>`) web URL into
+ * the `spotify:` app URI that launches the native Spotify app. Returns null for
+ * anything that isn't a recognizable Spotify web link.
+ */
+function spotifyAppUri(webUrl: string): string | null {
+  try {
+    const u = new URL(webUrl);
+    if (u.hostname !== "open.spotify.com" && !u.hostname.endsWith(".open.spotify.com")) {
+      return null;
+    }
+    const parts = u.pathname.split("/").filter(Boolean);
+    if (!parts.length) return null;
+    const [type, id] = parts;
+    if (type === "search") {
+      const q = id ? decodeURIComponent(id) : "";
+      return q ? `spotify:search:${q}` : null;
+    }
+    return id ? `spotify:${type}:${id}` : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Opens a Spotify link in the native app when it's installed, falling back to the
+ * web player otherwise. Attempts the `spotify:` URI first; if the app grabs focus
+ * (page hidden/blurred) we stop, otherwise we open the web URL shortly after.
+ */
+function openInSpotify(e: ReactMouseEvent<HTMLAnchorElement>, webUrl: string) {
+  const appUri = spotifyAppUri(webUrl);
+  if (!appUri) return; // no app URI → let the default web link open normally
+  e.preventDefault();
+
+  let leftPage = false;
+  const mark = () => {
+    leftPage = true;
+  };
+  document.addEventListener("visibilitychange", mark);
+  window.addEventListener("blur", mark);
+
+  window.location.href = appUri; // try to launch the app
+
+  window.setTimeout(() => {
+    document.removeEventListener("visibilitychange", mark);
+    window.removeEventListener("blur", mark);
+    // App didn't take over (not installed) → open the web player instead.
+    if (!leftPage && document.visibilityState === "visible") {
+      window.open(webUrl, "_blank", "noopener,noreferrer");
+    }
+  }, 1200);
+}
+
 function PodcastRow({ ep, ctx }: { ep: PodcastEpisode; ctx: RowCtx }) {
   // Preferred: exact episode URL resolved via the Spotify API (needs Premium on
   // the app owner). No-auth fallback: an episode-title search that lands Spotify
@@ -314,6 +367,7 @@ function PodcastRow({ ep, ctx }: { ep: PodcastEpisode; ctx: RowCtx }) {
             href={spotifyUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => openInSpotify(e, spotifyUrl)}
             title={ep.spotifyUrl ? "Listen to this episode on Spotify" : `Find this episode on Spotify`}
             aria-label="Open this episode on Spotify"
             className="flex items-center gap-1 rounded-full bg-[#1DB954]/15 px-2 py-0.5 text-xs font-medium text-[#1DB954] hover:bg-[#1DB954]/25"
