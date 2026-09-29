@@ -1,7 +1,9 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { KEYS, redis, useRedis } from "./redis";
 
-// Server-side reader state — shared across devices/browsers. Small JSON blob.
+// Server-side reader state — shared across devices/browsers. One small JSON
+// value stored under the Redis key `state` (or .data/reader-state.json locally).
 //   read/starred: link -> { ts, topic, source }
 //   seen:         link -> YYYY-MM-DD it was first shown (for cross-day dedup)
 
@@ -19,8 +21,6 @@ export interface ReaderState {
 
 const EMPTY: ReaderState = { read: {}, starred: {}, seen: {} };
 
-const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;
-const BLOB_KEY = "state/reader.json";
 const LOCAL = path.join(process.cwd(), ".data", "reader-state.json");
 
 function normalize(raw: Partial<ReaderState> | null): ReaderState {
@@ -32,14 +32,9 @@ function normalize(raw: Partial<ReaderState> | null): ReaderState {
 }
 
 export async function getState(): Promise<ReaderState> {
-  if (useBlob) {
-    const { list } = await import("@vercel/blob");
-    const { blobs } = await list({ prefix: BLOB_KEY });
-    const match = blobs.find((b) => b.pathname === BLOB_KEY);
-    if (!match) return { ...EMPTY };
-    const res = await fetch(`${match.url}?ts=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) return { ...EMPTY };
-    return normalize(await res.json());
+  if (useRedis) {
+    const raw = await redis().get<Partial<ReaderState>>(KEYS.state);
+    return raw ? normalize(raw) : { ...EMPTY };
   }
   try {
     return normalize(JSON.parse(await fs.readFile(LOCAL, "utf8")));
@@ -50,15 +45,8 @@ export async function getState(): Promise<ReaderState> {
 
 export async function saveState(state: ReaderState): Promise<void> {
   const body = JSON.stringify(state);
-  if (useBlob) {
-    const { put } = await import("@vercel/blob");
-    await put(BLOB_KEY, body, {
-      access: "public",
-      contentType: "application/json",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      cacheControlMaxAge: 0, // mutable — never cache at the edge
-    });
+  if (useRedis) {
+    await redis().set(KEYS.state, body);
   } else {
     await fs.mkdir(path.dirname(LOCAL), { recursive: true });
     await fs.writeFile(LOCAL, body, "utf8");

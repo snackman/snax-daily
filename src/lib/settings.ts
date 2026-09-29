@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { KEYS, redis, useRedis } from "./redis";
 
 // User-editable settings that the generation pipeline reads at run time, so the
 // digest can be tuned from the /settings page without touching code.
@@ -43,8 +44,6 @@ export const DEFAULT_SETTINGS: Settings = {
   podcastDays: 7,
 };
 
-const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;
-const BLOB_KEY = "settings/settings.json";
 const LOCAL = path.join(process.cwd(), ".data", "settings.json");
 
 function coerce(raw: Partial<Settings> | null): Settings {
@@ -65,14 +64,9 @@ function coerce(raw: Partial<Settings> | null): Settings {
 }
 
 export async function getSettings(): Promise<Settings> {
-  if (useBlob) {
-    const { list } = await import("@vercel/blob");
-    const { blobs } = await list({ prefix: BLOB_KEY });
-    const match = blobs.find((b) => b.pathname === BLOB_KEY);
-    if (!match) return { ...DEFAULT_SETTINGS };
-    const res = await fetch(`${match.url}?ts=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) return { ...DEFAULT_SETTINGS };
-    return coerce(await res.json());
+  if (useRedis) {
+    const raw = await redis().get<Partial<Settings>>(KEYS.settings);
+    return raw ? coerce(raw) : { ...DEFAULT_SETTINGS };
   }
   try {
     return coerce(JSON.parse(await fs.readFile(LOCAL, "utf8")));
@@ -84,15 +78,8 @@ export async function getSettings(): Promise<Settings> {
 export async function saveSettings(input: Partial<Settings>): Promise<Settings> {
   const merged = coerce(input);
   const body = JSON.stringify(merged, null, 2);
-  if (useBlob) {
-    const { put } = await import("@vercel/blob");
-    await put(BLOB_KEY, body, {
-      access: "public",
-      contentType: "application/json",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      cacheControlMaxAge: 0,
-    });
+  if (useRedis) {
+    await redis().set(KEYS.settings, body);
   } else {
     await fs.mkdir(path.dirname(LOCAL), { recursive: true });
     await fs.writeFile(LOCAL, body, "utf8");

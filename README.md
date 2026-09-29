@@ -31,8 +31,11 @@ Dashboard
 
 - **Sources** live in [`src/lib/sources.ts`](src/lib/sources.ts) — edit this to
   add/remove feeds or podcasts. Each is tagged by topic and `article`/`podcast`.
-- **Storage** auto-selects: Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set,
-  otherwise local JSON files under `.data/digests/`.
+- **Storage** auto-selects: Upstash Redis when `KV_REST_API_URL`/`KV_REST_API_TOKEN`
+  (or `UPSTASH_REDIS_REST_*`) are set, otherwise local JSON files under `.data/`.
+  Keys are namespaced with `REDIS_PREFIX` (default `news:`) so one database can
+  be shared with other apps. (Moved off Vercel Blob after the Hobby-plan
+  operations quota suspended the store.)
 
 ## Local setup
 
@@ -51,7 +54,8 @@ dashboard) runs without one.
 ## Deploying to Vercel
 
 1. Push to a Git repo and import into Vercel.
-2. Add a **Blob** store (Storage tab) — sets `BLOB_READ_WRITE_TOKEN` automatically.
+2. Connect an **Upstash Redis** database (Storage tab / Marketplace) — sets
+   `KV_REST_API_URL` and `KV_REST_API_TOKEN` automatically.
 3. Set env vars: `OPENAI_API_KEY` and a `CRON_SECRET`.
 4. The cron in [`vercel.json`](vercel.json) runs `/api/generate` daily at
    **11:45 UTC** (≈ 7:45 AM Eastern, so the digest is ready by 8).
