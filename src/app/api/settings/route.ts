@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { hasOwnerPin } from "@/lib/pin";
 import { getSettings, saveSettings, type Settings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -10,8 +11,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   // Gate writes behind an owner PIN so demo visitors can't change your config.
-  const pin = process.env.SETTINGS_PIN;
-  if (pin && request.headers.get("x-settings-pin") !== pin) {
+  if (!hasOwnerPin(request)) {
     return NextResponse.json({ ok: false, error: "wrong or missing PIN" }, { status: 401 });
   }
 
