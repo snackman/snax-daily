@@ -139,10 +139,16 @@ export async function fetchShow(tracked: TrackedShow): Promise<ShowInfo> {
   };
 }
 
+/** A Redis outage degrades to "no cache" (triggers a live fetch) rather than crashing /shows. */
 async function readCached(): Promise<ShowsSnapshot | null> {
   if (useRedis) {
-    const raw = await redis().get<ShowsSnapshot>(KEYS.shows);
-    return raw ?? null;
+    try {
+      const raw = await redis().get<ShowsSnapshot>(KEYS.shows);
+      return raw ?? null;
+    } catch (err) {
+      console.error("[shows] Redis read failed, treating as no cache:", err);
+      return null;
+    }
   }
   try {
     return JSON.parse(await fs.readFile(LOCAL, "utf8")) as ShowsSnapshot;
@@ -204,28 +210,45 @@ export async function getShows(): Promise<{ snapshot: ShowsSnapshot | null; stal
     };
   });
 
-  if (!anyOk && cached) {
-    // Total outage: keep serving the stale snapshot, don't overwrite it.
-    return { snapshot: cached, stale: true };
+  if (!anyOk) {
+    if (cached) {
+      // Total outage, but we have history: keep serving the stale snapshot, don't overwrite it.
+      return { snapshot: cached, stale: true };
+    }
+    // Total outage and nothing cached yet: don't persist a snapshot made entirely of
+    // error stubs — return null so the page renders the "Couldn't reach TVmaze" empty
+    // state, and so the next load retries cleanly instead of treating this as "fresh".
+    return { snapshot: null, stale: true };
   }
 
-  const snapshot: ShowsSnapshot = { fetchedAt: new Date().toISOString(), ids, shows };
+  const fetchedAt = new Date().toISOString();
+  // Cache only entries with real data (fresh or reused from a prior snapshot). A show
+  // that failed with no prior entry is left out of the cache entirely — that shrinks
+  // `ids` below the full SHOWS list, so sameIds() fails fresh-ness next time and that
+  // show gets retried on the very next load instead of being stuck for the TTL.
+  const cacheable = shows.filter((s) => !(s.error && !prevById.has(s.tvmazeId)));
   try {
-    await writeCached(snapshot);
+    await writeCached({ fetchedAt, ids: cacheable.map((s) => s.tvmazeId), shows: cacheable });
   } catch (err) {
     console.error("[shows] failed to cache snapshot:", err);
   }
-  return { snapshot, stale: !anyOk };
+  // The returned snapshot still includes every tracked show (incl. fresh error stubs)
+  // so the page can render something for each one; only the cache write above is pruned.
+  return { snapshot: { fetchedAt, ids, shows }, stale: false };
 }
 
 /**
  * Whether `latest` should show the NEW badge, given this show's watched mark (if
  * any) and the backlog baseline. A mark always takes precedence: once Snax has
- * marked a show, the baseline no longer matters for it.
+ * marked (or explicitly un-marked) a show, the baseline no longer matters for it.
  */
 export function isUnwatched(latest: EpisodeInfo | null, mark: WatchedMark | undefined): boolean {
   if (!latest) return false;
-  if (mark) return !(latest.id === mark.episodeId || latest.airdate < mark.airdate);
+  if (mark?.unwatched) return true; // explicit "force NEW" mark — see shows-watched.ts unwatch
+  if (mark && mark.episodeId !== undefined && mark.airdate !== undefined) {
+    return !(latest.id === mark.episodeId || latest.airdate < mark.airdate);
+  }
+  if (mark) return false; // malformed mark with neither — fail safe to "watched", not NEW
   return latest.airdate >= WATCHED_BASELINE;
 }
 
@@ -267,7 +290,9 @@ export function describeShow(info: ShowInfo, mark: WatchedMark | undefined, toda
   const unwatched = isUnwatched(info.latest, mark);
 
   let latestLabel: string;
-  if (!info.latest) {
+  if (info.error) {
+    latestLabel = "Couldn't load";
+  } else if (!info.latest) {
     latestLabel = "Not aired yet";
   } else {
     const parts = [episodeLabel(info.latest), info.latest.name, fmtDate(info.latest.airdate)].filter(Boolean);
@@ -279,7 +304,9 @@ export function describeShow(info: ShowInfo, mark: WatchedMark | undefined, toda
   }
 
   let statusLabel: string;
-  if (info.next) {
+  if (info.error) {
+    statusLabel = "TVmaze error — will retry on the next load";
+  } else if (info.next) {
     if (info.next.number === 1) {
       statusLabel = `Season ${info.next.season} premieres ${fmtDate(info.next.airdate)}${relativeSuffix(info.next.airdate, today)}`;
     } else {

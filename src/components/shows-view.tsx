@@ -56,11 +56,12 @@ export function ShowsView({
     const out: Record<number, string> = {};
     for (const r of rows) {
       const mark = marks[r.info.tvmazeId];
-      if (mark) out[r.info.tvmazeId] = mark.label;
+      if (mark?.label) out[r.info.tvmazeId] = mark.label;
     }
     return out;
   });
   const [pending, setPending] = useState<Set<number>>(new Set());
+  const [allPending, setAllPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -98,7 +99,7 @@ export function ShowsView({
 
   async function markWatched(row: Row) {
     const { info } = row;
-    if (!info.latest || pending.has(info.tvmazeId)) return;
+    if (!info.latest || pending.has(info.tvmazeId) || allPending) return;
     const label = episodeLabel(info.latest);
     setPendingFor(info.tvmazeId, true);
     setError(null);
@@ -127,7 +128,7 @@ export function ShowsView({
 
   async function undoWatched(row: Row) {
     const { info } = row;
-    if (pending.has(info.tvmazeId)) return;
+    if (pending.has(info.tvmazeId) || allPending) return;
     const prevLabel = watchedLabel[info.tvmazeId];
     setPendingFor(info.tvmazeId, true);
     setError(null);
@@ -151,6 +152,7 @@ export function ShowsView({
   }
 
   async function markAllWatched() {
+    if (allPending) return;
     const items = rows
       .filter((r) => unwatched.has(r.info.tvmazeId) && r.info.latest)
       .map((r) => ({
@@ -162,6 +164,7 @@ export function ShowsView({
         },
       }));
     if (!items.length) return;
+    setAllPending(true); // blocks individual row taps until this settles, so they can't race the batch write
     setError(null);
     const prevUnwatched = new Set(unwatched);
     const prevLabels = { ...watchedLabel };
@@ -173,6 +176,7 @@ export function ShowsView({
     });
 
     const ok = await post({ action: "watchAll", items });
+    setAllPending(false);
     if (!ok) {
       setUnwatched(prevUnwatched);
       setWatchedLabel(prevLabels);
@@ -195,10 +199,11 @@ export function ShowsView({
         <div className="mb-3">
           <button
             type="button"
+            disabled={allPending}
             onClick={markAllWatched}
-            className="text-sm text-black/50 hover:underline dark:text-white/50"
+            className="text-sm text-black/50 hover:underline disabled:opacity-60 dark:text-white/50"
           >
-            Mark all watched
+            {allPending ? "Marking all watched…" : "Mark all watched"}
           </button>
         </div>
       )}
@@ -238,14 +243,20 @@ export function ShowsView({
                 <p className={`mt-1 text-sm text-black/70 dark:text-white/60 ${!rowUnwatched ? "opacity-60" : ""}`}>
                   {display.latestLabel}
                 </p>
-                <p className="mt-1 text-xs text-black/40 dark:text-white/40">{display.statusLabel}</p>
+                <p
+                  className={`mt-1 text-xs ${
+                    info.error ? "text-amber-600 dark:text-amber-400" : "text-black/40 dark:text-white/40"
+                  }`}
+                >
+                  {display.statusLabel}
+                </p>
               </div>
               {isOwner && info.latest && (
                 <div className="shrink-0">
                   {rowUnwatched ? (
                     <button
                       type="button"
-                      disabled={isPending}
+                      disabled={isPending || allPending}
                       onClick={() => markWatched(row)}
                       className="min-h-9 rounded-full border border-black/10 px-3 text-sm hover:bg-black/5 disabled:opacity-60 dark:border-white/15 dark:hover:bg-white/10"
                     >
@@ -254,7 +265,7 @@ export function ShowsView({
                   ) : (
                     <button
                       type="button"
-                      disabled={isPending}
+                      disabled={isPending || allPending}
                       onClick={() => undoWatched(row)}
                       className="text-xs text-black/40 hover:underline disabled:opacity-60 dark:text-white/40"
                     >
@@ -278,7 +289,8 @@ export function ShowsView({
         >
           TVmaze
         </a>
-        {fetchedAt && ` · updated ${new Date(fetchedAt).toLocaleString()}`}
+        {fetchedAt &&
+          ` · updated ${new Date(fetchedAt).toLocaleString(undefined, { timeZone: "America/New_York" })}`}
         {stale && " · TVmaze unavailable, showing saved data"}
       </footer>
     </div>

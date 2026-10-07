@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { applyWatchedAction, ValidationError, type WatchedAction } from "@/lib/shows-watched";
+import { applyWatchedAction, ValidationError } from "@/lib/shows-watched";
 
 export const dynamic = "force-dynamic";
 
@@ -17,9 +17,9 @@ export async function POST(request: Request) {
   if (!authed(request)) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401, headers: NO_STORE });
   }
-  let body: WatchedAction;
+  let body: unknown;
   try {
-    body = (await request.json()) as WatchedAction;
+    body = await request.json();
   } catch {
     return NextResponse.json({ ok: false, error: "bad json" }, { status: 400, headers: NO_STORE });
   }
