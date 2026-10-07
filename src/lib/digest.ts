@@ -7,17 +7,9 @@ import { getState, saveState, seenBefore, type ReaderState } from "./state";
 import { getSettings } from "./settings";
 import { resolveSpotifyLinks, spotifyEpisodeFromPage } from "./spotify";
 import type { Digest, DigestStory, FeedItem, PodcastEpisode } from "./types";
+import { todayInTz } from "./date";
 
-/** Today's date as YYYY-MM-DD in the given IANA timezone. */
-export function todayInTz(tz = process.env.DIGEST_TZ ?? "America/New_York"): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  return parts; // en-CA formats as YYYY-MM-DD
-}
+export { todayInTz };
 
 /**
  * A Spotify episode URL already present in the RSS item link, if any.

@@ -576,7 +576,7 @@ export function DigestView({ digest }: { digest: Digest }) {
             <button
               type="button"
               onClick={() => chooseView("news")}
-              className={`rounded-lg px-3 py-1.5 font-medium transition ${
+              className={`rounded-lg px-2.5 py-1.5 font-medium transition sm:px-3 ${
                 newsMode
                   ? "bg-black/[0.06] text-black dark:bg-white/10 dark:text-white"
                   : "text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
@@ -587,7 +587,7 @@ export function DigestView({ digest }: { digest: Digest }) {
             <button
               type="button"
               onClick={() => chooseView("podcasts")}
-              className={`rounded-lg px-3 py-1.5 font-medium transition ${
+              className={`rounded-lg px-2.5 py-1.5 font-medium transition sm:px-3 ${
                 !newsMode
                   ? "bg-black/[0.06] text-black dark:bg-white/10 dark:text-white"
                   : "text-black/50 hover:text-black dark:text-white/50 dark:hover:text-white"
@@ -595,6 +595,12 @@ export function DigestView({ digest }: { digest: Digest }) {
             >
               🎧 Podcasts{podCount ? ` (${podCount})` : ""}
             </button>
+            <Link
+              href="/shows"
+              className="rounded-lg px-2.5 py-1.5 font-medium text-black/50 transition hover:text-black sm:px-3 dark:text-white/50 dark:hover:text-white"
+            >
+              📺 Shows
+            </Link>
           </div>
 
           <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">

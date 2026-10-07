@@ -1,13 +1,20 @@
 # Plan: shows-tab — "Shows" tab tracking new TV episodes
 
-Task: `shows-tab` (P3) · Branch: `task/shows-tab` · Planned 2026-10-07 · **Rev 2** (Snax's answers applied)
+Task: `shows-tab` (P3) · Branch: `task/shows-tab` · Planned 2026-10-07 · **Rev 3** (implemented — backlog-starts-watched decision applied)
 
 ## Goal
 
 Add a **📺 Shows** tab next to the existing 📰 News / 🎧 Podcasts toggle. It lists Sam's TV shows. For each one it shows
 the latest aired episode (SxEy, title, air date), the next episode date if scheduled (or a clear between-seasons/ended
-status), and the network or streaming service. An episode is **NEW until Snax marks it watched**. There is no time window.
-Unwatched new episodes sort first. Data comes from the TVmaze API (free, no key).
+status), and the network or streaming service. An episode is **NEW until Snax marks it watched**, except for the
+one-time launch backlog below. Unwatched new episodes sort first. Data comes from the TVmaze API (free, no key).
+
+**Resolved (open question 2, answered by Snax): the backlog starts as watched.** Episodes that aired before launch day
+(`WATCHED_BASELINE = "2026-10-08"`, America/New_York, in `src/lib/shows.ts`) count as watched for a show with no stored
+mark, so day one isn't 9 shows all showing NEW (including The Studio's finale from May 2025). A stored watched mark
+always takes precedence over the baseline — once Snax marks (or unmarks) a show, the baseline no longer applies to it.
+"Mark all watched" is kept regardless, since it's still useful for a show added later or an episode that airs the same
+day it's added. See `isUnwatched()` in `src/lib/shows.ts` for the exact rule.
 
 ## Decisions
 
@@ -102,9 +109,12 @@ export type WatchedMap = Record<number /* tvmazeId */, WatchedMark>;
 
 - **Model: "watched up to" per show.** One mark per show, pointing at the latest episode Snax marked. We only ever *show* the
   latest episode, so marking it covers every older one by definition, and there's no per-episode list to maintain.
-- **Unwatched rule** (pure function `isUnwatched(latest, mark)`): `latest && !(mark && (latest.id === mark.episodeId || latest.airdate < mark.airdate))`.
-  When a newer episode airs (new id with an airdate on or after the mark), it becomes NEW again with no extra logic. The Daily Show works the same way:
-  marking clears it until the next episode flips into TVmaze's `previousepisode`.
+- **Unwatched rule** (pure function `isUnwatched(latest, mark)` in `src/lib/shows.ts`): if there's a mark, `!(latest.id ===
+  mark.episodeId || latest.airdate < mark.airdate)`; if there's no mark, `latest.airdate >= WATCHED_BASELINE` (the backlog
+  decision above — a show with nothing marked yet is NEW only once an episode airs on/after launch day). A mark always
+  wins over the baseline. When a newer episode airs (new id with an airdate on or after the mark), it becomes NEW again
+  with no extra logic. The Daily Show works the same way: marking clears it until the next episode flips into TVmaze's
+  `previousepisode`.
 - **Storage:** Redis **hash** `KEYS.showsWatched = rkey("shows:watched")`, one field per tvmazeId whose value is the `WatchedMark` JSON.
   Writes with `HSET`/`HDEL` are atomic per show, so fast taps on different rows can't overwrite each other. That's safer than the
   single-JSON read-modify-write that `state.ts` uses. Reads use `HGETALL` (Upstash auto-deserializes).
@@ -195,7 +205,8 @@ since watched marks aren't sensitive. Visitors without a PIN see the state but n
     visible, so unmarking needs no special mode.
   - Shows with no latest episode get no control.
 - **"Mark all watched"** small text button above the list (owner only, shown when there are ≥2 unwatched shows; mirrors "Mark all
-  read"). It handles the first-run backlog, since with no time window every show starts as NEW.
+  read"). The launch-day backlog is handled by `WATCHED_BASELINE` instead (see Goal), but this stays useful for a show
+  added later, or several episodes airing the same day, that Snax wants to bulk-clear.
 - Footer: "Schedule from [TVmaze](https://www.tvmaze.com) · updated {time}", plus " · TVmaze unavailable, showing saved data" when
   `stale`. The TVmaze link here is attribution, not a row link.
 - Empty state (no snapshot at all): "Couldn't reach TVmaze right now. Try again shortly."
@@ -248,10 +259,12 @@ Local:
 2. `npx tsc --noEmit`, `npm run lint`, `npm run build`. The build must not call TVmaze.
 3. `npm run dev` with no Redis env, on `/shows`:
    - `.data/shows.json` is written, and a reload doesn't refetch (log the fetch).
-   - Every show starts NEW. Mark one watched and confirm `.data/shows-watched.json` is written.
+   - With `WATCHED_BASELINE` in the past relative to every show's latest episode (the normal case once launch day has
+     passed), nothing starts NEW. Hand-edit a mark's `airdate`/`episodeId` to simulate a new episode airing (step 4
+     below), mark it watched, and confirm `.data/shows-watched.json` is written.
    - Reload: the show sits in the watched group with no NEW badge.
    - Undo, then reload: NEW again.
-   - "Mark all watched" clears them all.
+   - "Mark all watched" clears any that are NEW.
 4. Hand-edit a mark's `airdate`/`episodeId` to an older episode and confirm NEW reappears (this simulates a new episode airing).
 5. PIN: set `SETTINGS_PIN=x` in `.env.local`:
    - With no PIN in localStorage, the controls are hidden.
@@ -295,5 +308,4 @@ Vercel preview (via `/ship`):
 
 1. Is `SETTINGS_PIN` set in Vercel (Production + Preview)? If not, watched marks, like settings today, are publicly writable.
    Should the gate fail closed in production as a follow-up task?
-2. First run: every show starts NEW, including The Studio's May 2025 finale. The plan handles this with "Mark all watched". Is that OK, or would he rather
-   seed everything aired before launch day as watched?
+2. ~~First run: every show starts NEW...~~ **Resolved:** backlog starts as watched (`WATCHED_BASELINE`), see Goal above.

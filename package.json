@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "check-feeds": "tsx scripts/check-feeds.ts",
+    "check-shows": "tsx scripts/check-shows.ts",
     "generate": "tsx --env-file-if-exists=.env.local scripts/generate.ts"
   },
   "dependencies": {

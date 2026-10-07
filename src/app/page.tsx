@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getLatestDigest, listDigestDates } from "@/lib/storage";
 import { DigestView, DateNav } from "@/components/digest-view";
 import { SOURCE_COUNT } from "@/lib/digest";
@@ -31,6 +32,14 @@ export default async function Home() {
               /api/generate
             </code>{" "}
             to build today&apos;s digest.
+          </p>
+          <p className="mt-4">
+            <Link
+              href="/shows"
+              className="rounded-lg border border-black/10 px-3 py-1.5 text-sm hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+            >
+              📺 Shows
+            </Link>
           </p>
         </div>
       )}
