@@ -60,9 +60,9 @@ Fetched live on page load (not the cron) with a 1h soft cache in Redis
   one-time launch-day cutoff so the backlog doesn't show every show as NEW on
   day one. "Mark all watched" stays around for bulk-clearing a newly added show
   or several same-day episodes.
-- **`SETTINGS_PIN`** must be set for this to be useful — without it, marking
-  watched (like settings and reader state) is publicly writable. See the flag
-  in `plans/shows-tab.md`.
+- **`SETTINGS_PIN`** gates every owner write (settings, reader state, watched
+  marks) via `src/lib/pin.ts`. It fails closed: if the PIN isn't set, writes are
+  rejected everywhere except `next dev`.
 
 ## Local setup
 

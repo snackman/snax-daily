@@ -1,20 +1,13 @@
 import { NextResponse } from "next/server";
+import { hasOwnerPin } from "@/lib/pin";
 import { applyWatchedAction, ValidationError } from "@/lib/shows-watched";
 
 export const dynamic = "force-dynamic";
 
 const NO_STORE = { "cache-control": "no-store" } as const;
 
-// Same owner-PIN gate as /api/settings and /api/state (see src/app/api/state/route.ts).
-// NOTE: this fails open if SETTINGS_PIN isn't set — flagged in plans/shows-tab.md,
-// left as-is here since fixing it is a separate task.
-function authed(request: Request): boolean {
-  const pin = process.env.SETTINGS_PIN;
-  return !pin || request.headers.get("x-settings-pin") === pin;
-}
-
 export async function POST(request: Request) {
-  if (!authed(request)) {
+  if (!hasOwnerPin(request)) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401, headers: NO_STORE });
   }
   let body: unknown;

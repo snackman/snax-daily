@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { hasOwnerPin } from "@/lib/pin";
 import { applyAction, getState, type StateAction } from "@/lib/state";
 
 export const dynamic = "force-dynamic";
@@ -6,13 +7,8 @@ export const dynamic = "force-dynamic";
 // Server-side read/star state is the OWNER's, synced across their devices. It's
 // gated behind the owner PIN: visitors read/star locally (in their own browser)
 // and never touch this store.
-function authed(request: Request): boolean {
-  const pin = process.env.SETTINGS_PIN;
-  return !pin || request.headers.get("x-settings-pin") === pin;
-}
-
 export async function GET(request: Request) {
-  if (!authed(request)) {
+  if (!hasOwnerPin(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const s = await getState();
@@ -23,7 +19,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!authed(request)) {
+  if (!hasOwnerPin(request)) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
   let body: StateAction;
