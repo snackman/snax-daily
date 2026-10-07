@@ -34,9 +34,13 @@ export function redis(): Redis {
 //   digests              zset    — member = date, score = epoch ms of that date (index/listing)
 //   settings             string  — settings JSON
 //   state                string  — reader state JSON (read/starred/seen)
+//   shows                string  — cached TVmaze snapshot JSON (ShowsSnapshot)
+//   shows:watched        hash    — field = tvmazeId, value = WatchedMark JSON
 export const KEYS = {
   digest: (date: string) => rkey(`digest:${date}`),
   digestIndex: rkey("digests"),
   settings: rkey("settings"),
   state: rkey("state"),
+  shows: rkey("shows"),
+  showsWatched: rkey("shows:watched"),
 } as const;

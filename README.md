@@ -26,7 +26,8 @@ Vercel Cron (7:45 AM ET)
 
 Dashboard
   ├─ /                     → latest digest         (src/app/page.tsx)
-  └─ /archive/[date]       → any past day
+  ├─ /archive/[date]       → any past day
+  └─ /shows                → TV shows tab           (src/app/shows/page.tsx)
 ```
 
 - **Sources** live in [`src/lib/sources.ts`](src/lib/sources.ts) — edit this to
@@ -36,6 +37,32 @@ Dashboard
   Keys are namespaced with `REDIS_PREFIX` (default `news:`) so one database can
   be shared with other apps. (Moved off Vercel Blob after the Hobby-plan
   operations quota suspended the store.)
+
+## Shows tab
+
+`/shows` tracks a fixed list of TV shows (not RSS-driven) against the free
+[TVmaze API](https://www.tvmaze.com/api) — latest/next episode, network or
+streaming service, and a NEW badge until Snax marks an episode watched.
+Fetched live on page load (not the cron) with a 1h soft cache in Redis
+(`.data/shows.json` locally); see `plans/shows-tab.md` for why.
+
+- **Adding/removing a show:** edit `SHOWS` in
+  [`src/lib/shows.ts`](src/lib/shows.ts) — find the TVmaze id with
+  `https://api.tvmaze.com/singlesearch/shows?q=<name>`, sanity-check it against
+  `https://www.tvmaze.com/shows/<id>`, then add `{ tvmazeId, name }` (plus
+  `daily: true` for a nightly show like The Daily Show, which only ever shows
+  its latest episode). Run `npm run check-shows` to confirm it resolves.
+- **Watched state** is "watched up to" per show — one mark pointing at the
+  latest episode, stored in the Redis hash `shows:watched`
+  (`.data/shows-watched.json` locally) and gated by the same `SETTINGS_PIN` as
+  settings/reader state (see below). A show with no mark yet is NEW only if its
+  latest episode aired on/after `WATCHED_BASELINE` in `src/lib/shows.ts` — a
+  one-time launch-day cutoff so the backlog doesn't show every show as NEW on
+  day one. "Mark all watched" stays around for bulk-clearing a newly added show
+  or several same-day episodes.
+- **`SETTINGS_PIN`** must be set for this to be useful — without it, marking
+  watched (like settings and reader state) is publicly writable. See the flag
+  in `plans/shows-tab.md`.
 
 ## Local setup
 
@@ -66,6 +93,7 @@ dashboard) runs without one.
 | Command | What it does |
 | --- | --- |
 | `npm run check-feeds` | Fetch every feed and report OK/broken URLs |
+| `npm run check-shows` | Fetch every tracked show from TVmaze and report id/service/status |
 | `npm run generate` | Run the full pipeline and write today's digest |
 | `npm run dev` / `build` | Next.js dev server / production build |
 
