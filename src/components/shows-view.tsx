@@ -14,6 +14,19 @@ function getPin(): string {
   }
 }
 
+// Checks a PIN against the server (GET /api/state is owner-only) and, if it's
+// right, remembers it the same way the Settings page does.
+async function unlockWithPin(pin: string): Promise<boolean> {
+  const res = await fetch("/api/state", { headers: { "x-settings-pin": pin } });
+  if (!res.ok) return false;
+  try {
+    localStorage.setItem(PIN_KEY, pin);
+  } catch {
+    /* ignore */
+  }
+  return true;
+}
+
 const SERVICE_STYLES: Record<string, string> = {
   HBO: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
   "Paramount+": "bg-blue-500/15 text-blue-600 dark:text-blue-300",
@@ -63,6 +76,10 @@ export function ShowsView({
   const [pending, setPending] = useState<Set<number>>(new Set());
   const [allPending, setAllPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pinOpen, setPinOpen] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinBusy, setPinBusy] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsOwner(!!getPin());
@@ -85,7 +102,8 @@ export function ShowsView({
       });
       if (res.status === 401) {
         setIsOwner(false);
-        setError("Set your PIN in ⚙︎ Settings to mark episodes");
+        setPinOpen(true);
+        setError("Your saved PIN didn't work. Enter it again to mark episodes.");
         return false;
       }
       const data = await res.json();
@@ -193,8 +211,64 @@ export function ShowsView({
 
   const unwatchedCount = rows.filter((r) => unwatched.has(r.info.tvmazeId)).length;
 
+  async function submitPin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pinInput || pinBusy) return;
+    setPinBusy(true);
+    setPinError(null);
+    try {
+      if (await unlockWithPin(pinInput)) {
+        setIsOwner(true);
+        setPinOpen(false);
+        setPinInput("");
+        setError(null);
+      } else {
+        setPinError("Wrong PIN.");
+      }
+    } catch {
+      setPinError("Couldn't check the PIN — try again.");
+    } finally {
+      setPinBusy(false);
+    }
+  }
+
   return (
     <div>
+      {!isOwner && (
+        <div className="mb-3 text-sm">
+          {pinOpen ? (
+            <form onSubmit={submitPin} className="flex flex-wrap items-center gap-2">
+              <input
+                type="password"
+                inputMode="numeric"
+                autoComplete="current-password"
+                autoFocus
+                placeholder="PIN"
+                aria-label="PIN"
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value)}
+                className="w-28 rounded-md border border-black/15 bg-transparent px-2 py-1.5 text-base dark:border-white/20"
+              />
+              <button
+                type="submit"
+                disabled={!pinInput || pinBusy}
+                className="min-h-9 rounded-full border border-black/10 px-3 hover:bg-black/5 disabled:opacity-60 dark:border-white/15 dark:hover:bg-white/10"
+              >
+                {pinBusy ? "Checking…" : "Unlock"}
+              </button>
+              {pinError && <span className="text-red-600 dark:text-red-400">{pinError}</span>}
+            </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setPinOpen(true)}
+              className="text-black/50 hover:underline dark:text-white/50"
+            >
+              🔒 Enter PIN to mark episodes watched
+            </button>
+          )}
+        </div>
+      )}
       {isOwner && unwatchedCount >= 2 && (
         <div className="mb-3">
           <button
