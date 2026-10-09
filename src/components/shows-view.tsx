@@ -61,7 +61,8 @@ export function ShowsView({
   fetchedAt: string | null;
   stale: boolean;
 }) {
-  const [isOwner, setIsOwner] = useState(false);
+  // null until we've read localStorage after mount, so the PIN prompt doesn't flash for the owner.
+  const [isOwner, setIsOwner] = useState<boolean | null>(null);
   const [unwatched, setUnwatched] = useState<Set<number>>(
     () => new Set(rows.filter((r) => r.display.unwatched).map((r) => r.info.tvmazeId)),
   );
@@ -234,7 +235,7 @@ export function ShowsView({
 
   return (
     <div>
-      {!isOwner && (
+      {isOwner === false && (
         <div className="mb-3 text-sm">
           {pinOpen ? (
             <form onSubmit={submitPin} className="flex flex-wrap items-center gap-2">
