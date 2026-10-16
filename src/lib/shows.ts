@@ -42,6 +42,8 @@ export interface EpisodeInfo {
   number: number | null; // null = special
   name: string;
   airdate: string; // YYYY-MM-DD, network-local
+  /** UTC timestamp of the broadcast, only when TVmaze has a real airtime (streaming drops are date-only). */
+  airstamp?: string | null;
 }
 
 /** Raw TVmaze facts, cached as-is. Labels and sorting are derived at render time. */
@@ -74,6 +76,8 @@ interface TvmazeEpisode {
   season: number;
   number: number | null;
   airdate: string;
+  airtime: string; // "21:00", or "" when unknown (streaming)
+  airstamp: string | null;
 }
 
 interface TvmazeSeason {
@@ -98,7 +102,15 @@ interface TvmazeShow {
 
 function toEpisodeInfo(ep: TvmazeEpisode | undefined): EpisodeInfo | null {
   if (!ep) return null;
-  return { id: ep.id, season: ep.season, number: ep.number, name: ep.name, airdate: ep.airdate };
+  return {
+    id: ep.id,
+    season: ep.season,
+    number: ep.number,
+    name: ep.name,
+    airdate: ep.airdate,
+    // Without an airtime TVmaze fills airstamp with a placeholder (noon UTC), so drop it.
+    airstamp: ep.airtime ? ep.airstamp : null,
+  };
 }
 
 /** Fetch one show's facts from TVmaze. Throws on network/parse failure or 404. */
@@ -271,6 +283,27 @@ function fmtDate(iso: string): string {
   });
 }
 
+/** Air time in the digest timezone, e.g. "9 PM EDT"; "" when unknown. */
+function fmtTime(ep: EpisodeInfo): string {
+  if (!ep.airstamp) return "";
+  const t = new Date(ep.airstamp);
+  if (Number.isNaN(t.getTime())) return "";
+  return t
+    .toLocaleTimeString("en-US", {
+      timeZone: process.env.DIGEST_TZ ?? "America/New_York",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    })
+    .replace(":00", "");
+}
+
+/** Date plus air time when known, e.g. "Sun, Oct 25 · 11 PM EDT". */
+function fmtWhen(ep: EpisodeInfo): string {
+  const time = fmtTime(ep);
+  return time ? `${fmtDate(ep.airdate)} · ${time}` : fmtDate(ep.airdate);
+}
+
 function daysUntil(airdate: string, today: string): number {
   const a = Date.parse(`${airdate}T00:00:00`);
   const t = Date.parse(`${today}T00:00:00`);
@@ -295,7 +328,7 @@ export function describeShow(info: ShowInfo, mark: WatchedMark | undefined, toda
   } else if (!info.latest) {
     latestLabel = "Not aired yet";
   } else {
-    const parts = [episodeLabel(info.latest), info.latest.name, fmtDate(info.latest.airdate)].filter(Boolean);
+    const parts = [episodeLabel(info.latest), info.latest.name, fmtWhen(info.latest)].filter(Boolean);
     const agedDays = daysUntil(info.latest.airdate, today) * -1;
     latestLabel =
       agedDays > 60
@@ -308,9 +341,9 @@ export function describeShow(info: ShowInfo, mark: WatchedMark | undefined, toda
     statusLabel = "TVmaze error — will retry on the next load";
   } else if (info.next) {
     if (info.next.number === 1) {
-      statusLabel = `Season ${info.next.season} premieres ${fmtDate(info.next.airdate)}${relativeSuffix(info.next.airdate, today)}`;
+      statusLabel = `Season ${info.next.season} premieres ${fmtWhen(info.next)}${relativeSuffix(info.next.airdate, today)}`;
     } else {
-      statusLabel = `Next: ${episodeLabel(info.next)} · ${fmtDate(info.next.airdate)}${relativeSuffix(info.next.airdate, today)}`;
+      statusLabel = `Next: ${episodeLabel(info.next)} · ${fmtWhen(info.next)}${relativeSuffix(info.next.airdate, today)}`;
     }
   } else if (info.status === "Ended") {
     statusLabel = "Series ended";
