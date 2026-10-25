@@ -12,6 +12,8 @@ export interface FeedItem {
   sourceHomepage: string;
   topic: Topic;
   type: SourceType;
+  /** Thumbnail/lead image URL from the feed (media:*, enclosure, or first <img>). */
+  image?: string;
   /** Hacker News popularity, when the item comes from HN. */
   hn?: { points: number; comments: number };
   /** How many distinct sources covered this story (consensus signal). */
@@ -28,6 +30,8 @@ export interface DigestStory {
   link: string;
   sourceName: string;
   topic: Topic;
+  /** Lead image: from the feed, else the article page's og:image. */
+  image?: string;
 }
 
 /** A new podcast episode surfaced in the lightweight podcast section. */

@@ -200,6 +200,25 @@ interface RowCtx {
   register: (l: string, el: HTMLElement | null) => void;
 }
 
+/** Article lead image; hides itself if the remote image fails to load. */
+function StoryThumb({ src, className }: { src?: string; className: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return null;
+  return (
+    // Remote images from arbitrary publishers, so a plain <img> rather than next/image.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+      className={`shrink-0 rounded-md bg-black/5 object-cover dark:bg-white/10 ${className}`}
+    />
+  );
+}
+
 const cursorRing = "rounded-lg ring-2 ring-sky-500/70 ring-offset-2 ring-offset-[var(--background)]";
 
 function StoryRow({ story, ctx }: { story: DigestStory; ctx: RowCtx }) {
@@ -232,6 +251,7 @@ function StoryRow({ story, ctx }: { story: DigestStory; ctx: RowCtx }) {
           {story.sourceName} · {hostOf(story.link)}
         </p>
       </a>
+      <StoryThumb src={story.image} className="mt-0.5 h-14 w-20 sm:h-16 sm:w-24" />
     </li>
   );
 }
@@ -267,6 +287,7 @@ function PickCard({ story, rank, ctx }: { story: DigestStory; rank: number; ctx:
           {story.sourceName} · {hostOf(story.link)}
         </p>
       </a>
+      <StoryThumb src={story.image} className="h-16 w-24 sm:h-24 sm:w-36" />
     </li>
   );
 }

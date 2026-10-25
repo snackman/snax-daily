@@ -7,7 +7,23 @@ import type { FeedItem } from "./types";
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) daily-digest/1.0";
 
-const parser = new Parser({
+type MediaNode = { $?: { url?: string; medium?: string; type?: string; width?: string } };
+type CustomItem = {
+  mediaContent?: MediaNode | MediaNode[];
+  mediaThumbnail?: MediaNode | MediaNode[];
+  mediaGroup?: { "media:content"?: MediaNode[]; "media:thumbnail"?: MediaNode[] };
+  contentEncoded?: string;
+};
+
+const parser = new Parser<Record<string, unknown>, CustomItem>({
+  customFields: {
+    item: [
+      ["media:content", "mediaContent", { keepArray: true }],
+      ["media:thumbnail", "mediaThumbnail", { keepArray: true }],
+      ["media:group", "mediaGroup"],
+      ["content:encoded", "contentEncoded"],
+    ],
+  },
   timeout: 15000,
   maxRedirects: 5,
   headers: {
@@ -40,6 +56,43 @@ function clean(text: string | undefined, max = 400): string {
     .replace(/\s+/g, " ")
     .trim();
   return stripped.length > max ? stripped.slice(0, max) + "…" : stripped;
+}
+
+const asArray = <T,>(v: T | T[] | undefined): T[] => (v === undefined ? [] : Array.isArray(v) ? v : [v]);
+
+function httpUrl(u: string | undefined): string | undefined {
+  const t = u?.trim().replace(/&amp;/g, "&");
+  return t && /^https?:\/\//i.test(t) ? t : undefined;
+}
+
+/** Best lead image for a feed item: media:* → image enclosure → first <img> in the body. */
+function feedImage(entry: Parser.Item & CustomItem): string | undefined {
+  const media = [
+    ...asArray(entry.mediaContent),
+    ...asArray(entry.mediaGroup?.["media:content"]),
+    ...asArray(entry.mediaThumbnail),
+    ...asArray(entry.mediaGroup?.["media:thumbnail"]),
+  ]
+    .map((m) => m.$)
+    .filter((a) => a?.url && (!a.medium || a.medium === "image") && (!a.type || a.type.startsWith("image/")))
+    .sort((a, b) => Number(b?.width ?? 0) - Number(a?.width ?? 0));
+  for (const m of media) {
+    const u = httpUrl(m?.url);
+    if (u) return u;
+  }
+  if (entry.enclosure?.url && entry.enclosure.type?.startsWith("image/")) {
+    const u = httpUrl(entry.enclosure.url);
+    if (u) return u;
+  }
+  const html = entry.contentEncoded ?? entry.content ?? "";
+  // Skip tracking pixels / tiny icons.
+  for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
+    const tag = m[0];
+    if (/\b(width|height)=["']?1["'\s>]/i.test(tag) || /feedburner|pixel|emoji|gravatar/i.test(tag)) continue;
+    const u = httpUrl(tag.match(/\bsrc=["']([^"']+)["']/i)?.[1]);
+    if (u) return u;
+  }
+  return undefined;
 }
 
 function parseDate(value: string | undefined): string | null {
@@ -135,6 +188,7 @@ async function fetchSource(
       sourceHomepage: source.homepage,
       topic,
       type: source.type,
+      image: source.type === "article" ? feedImage(entry) : undefined,
       hn: isHN ? parseHnSignal(entry.content ?? entry.contentSnippet) : undefined,
     });
     if (items.length >= PER_SOURCE_CAP) break;
@@ -256,9 +310,11 @@ export function clusterConsensus(items: FeedItem[]): FeedItem[] {
         // keep the entry with the richer snippet as representative
         if (item.snippet.length > reps[i].snippet.length) {
           const keepSources = sources[i];
-          reps[i] = item;
+          reps[i] = { ...item, image: item.image ?? reps[i].image };
           tokens[i] = toks;
           sources[i] = keepSources;
+        } else if (!reps[i].image && item.image) {
+          reps[i] = { ...reps[i], image: item.image };
         }
         merged = true;
         break;
