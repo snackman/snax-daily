@@ -6,7 +6,7 @@ Stages: todo · doing · stuck · review · done · skip — Priority: P1 (highe
 
 | ID | Task | Stage | Priority | Due | Lead | Tags | Plan | PR | Notes |
 |----|------|-------|----------|-----|------|------|------|----|-------|
-| article-images | Digest: lead images on story cards (feed media/enclosure/<img>, og:image fallback for picked stories) | review | P3 | | Snax | digest | | | |
+| article-images | Digest: lead images on story cards (feed media/enclosure/<img>, og:image fallback for picked stories) | review | P3 | | Snax | digest | | #5 | |
 | shows-streaming-times | Shows: default release time per streaming service when TVmaze has no airtime (Paramount+ 12 AM PT / 3 AM ET; verify Apple TV etc.) | todo | P3 | | Snax | shows | | | |
 | shows-digest-line | Shows: add a shows line to the daily digest ("Tonight: War S1E4 · 9 PM", "Out now: MobLand S2E6") | todo | P3 | | Snax | shows | | | |
 | shows-calendar-feed | Shows: subscribable .ics calendar feed of upcoming episodes with air times | todo | P3 | | Snax | shows | | | |
