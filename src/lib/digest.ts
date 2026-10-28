@@ -5,6 +5,7 @@ import { webSearchFill } from "./websearch";
 import { saveDigest } from "./storage";
 import { getState, saveState, seenBefore, type ReaderState } from "./state";
 import { getSettings } from "./settings";
+import { fillStoryImages } from "./images";
 import { resolveSpotifyLinks, spotifyEpisodeFromPage } from "./spotify";
 import type { Digest, DigestStory, FeedItem, PodcastEpisode } from "./types";
 import { todayInTz } from "./date";
@@ -148,6 +149,8 @@ export async function generateDigest(date = todayInTz()): Promise<Digest> {
       }
     });
   }
+
+  await fillStoryImages([...topPicks, ...Object.values(byTopic).flat()]);
 
   const digest: Digest = {
     date,

@@ -156,6 +156,7 @@ ${list}`,
       link: src.link,
       sourceName: src.sourceName,
       topic: src.topic,
+      image: src.image,
     };
   };
 
