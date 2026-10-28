@@ -6,7 +6,6 @@ Stages: todo · doing · stuck · review · done · skip — Priority: P1 (highe
 
 | ID | Task | Stage | Priority | Due | Lead | Tags | Plan | PR | Notes |
 |----|------|-------|----------|-----|------|------|------|----|-------|
-| article-images | Digest: lead images on story cards (feed media/enclosure/<img>, og:image fallback for picked stories) | review | P3 | | Snax | digest | | #5 | |
 | shows-streaming-times | Shows: default release time per streaming service when TVmaze has no airtime (Paramount+ 12 AM PT / 3 AM ET; verify Apple TV etc.) | todo | P3 | | Snax | shows | | | |
 | shows-digest-line | Shows: add a shows line to the daily digest ("Tonight: War S1E4 · 9 PM", "Out now: MobLand S2E6") | todo | P3 | | Snax | shows | | | |
 | shows-calendar-feed | Shows: subscribable .ics calendar feed of upcoming episodes with air times | todo | P3 | | Snax | shows | | | |
@@ -22,3 +21,4 @@ Stages: todo · doing · stuck · review · done · skip — Priority: P1 (highe
 |----|------|----------|------|----|-------|
 | shows-tab | Shows tab tracking new episodes of Sam's TV shows (TVmaze, watched state) | P3 | 2026-10-07 | #1 | |
 | settings-pin-fail-closed | Owner PIN check fails closed (shared hasOwnerPin in src/lib/pin.ts) | P3 | 2026-10-07 | #2 | |
+| article-images | Digest: lead images on story cards (feed + og:image fallback) | P3 | 2026-10-28 | #5 | |
